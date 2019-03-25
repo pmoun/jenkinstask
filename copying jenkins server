@@ -1,0 +1,22 @@
+How do I get the data transferred without having to shut down jenkins for a long time.
+Rsync is your friend. I decided to use rsync to copy the contents of the jenkins home directory to the target server. That way I was able to copy all of jenkins’ data while it was still running, and run rsync a second time after shutting it down. The second run would of course be much faster as it only has to deal with the changes since the first run.
+
+In order to preserve all existing file ownerships, you need to be logged in as root on the source host and transfer the data to the “root” user.
+
+This is the command I used:
+time rsync -av --delete -e "ssh -i /root/.ssh/<keyfile>" /var/lib/jenkins/* <targethost>:/var/lib/jenkins/
+The first time I ran rsync it seemed to take forever. 
+The reason was that I have the config history plugin installed which creates thousands of small files over time. 
+Some jobs had a history of more than 500 changes, which results in 500 files.
+I adjusted the plugin so that it would only keep a maximum of 100 entries.
+In the general configuration of jenkins you can adjust this:
+
+
+
+Just be aware that jenkins won’t start removing config history for every job just by changing this value.
+Only after you hit the save button on the configuration page of a job this will be done. 
+As a workaround I used the configuration slicing plugin. 
+I went to the SCM Timer Trigger Slicer as this is disabled on all my jobs. 
+I changed the value from “(Disabled)” to some fantasy value like “3 3 3 3 3” and clicked “Save”. 
+That triggered a config change on all jobs, thus removing all the config history as configured above. 
+Afterwardsprocess drastically.
